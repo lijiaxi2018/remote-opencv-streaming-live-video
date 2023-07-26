@@ -85,7 +85,6 @@ class Streamer(threading.Thread):
                     frame = numpy.load(memfile)
 
                     ret, jpeg = cv2.imencode('.jpg', frame)
-
                     self.jpeg = jpeg
 
                     self.streaming = True
