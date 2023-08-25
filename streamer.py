@@ -42,6 +42,9 @@ class Streamer(threading.Thread):
 
             fps = 0
             last_fps_second = int(time.time())
+            packet_delay_list = []
+            frame_delay_list = []
+            fps_list = []
             while True:
 
                 data = conn.recv(payload_size)
@@ -54,7 +57,9 @@ class Streamer(threading.Thread):
                     sent_time = struct.unpack("Ld", data)[1]
 
                     # Calculat Packet Delay # Jiaxi
-                    print("One-Way Packet Delay: " + str(time.time() - sent_time))
+                    packet_delay = time.time() - sent_time
+                    print("One-Way Packet Delay: " + str(packet_delay))
+                    packet_delay_list.append(packet_delay)
 
                     # Read the payload (the actual frame)
                     data = b''
@@ -68,7 +73,9 @@ class Streamer(threading.Thread):
                             break
                         
                     # Calculat Frame Delay # Jiaxi
-                    print("One-Way Frame Delay: " + str(time.time() - sent_time))
+                    frame_delay = time.time() - sent_time
+                    print("One-Way Frame Delay: " + str(frame_delay))
+                    frame_delay_list.append(frame_delay)
                     
                     # Skip building frame since streaming ended
                     if self.jpeg is not None and not self.streaming:
@@ -87,6 +94,7 @@ class Streamer(threading.Thread):
                     curr_fps_second = int(time.time())
                     if curr_fps_second != last_fps_second:
                         print("FPS: " + str(fps))
+                        fps_list.append(fps)
                         last_fps_second = curr_fps_second
                         fps = 0
                     fps += 1
@@ -100,7 +108,10 @@ class Streamer(threading.Thread):
                     self.running = False
                     self.jpeg = None
                     break
-
+        
+        print("Average One-Way Packet Delay: " + str(numpy.average(numpy.array(packet_delay_list))))
+        print("Average One-Way Frame Delay: " + str(numpy.average(numpy.array(frame_delay_list))))
+        print("Average FPS: " + str(numpy.average(numpy.array(fps_list))))
         print('Exit thread.')
 
     def stop(self):
