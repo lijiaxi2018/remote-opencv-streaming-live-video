@@ -41,7 +41,10 @@ class Streamer(threading.Thread):
             print("New connection accepted.")
 
             fps = 0
-            last_received_second = int(time.time())
+            last_fps_second = int(time.time())
+            packet_delay_list = []
+            frame_delay_list = []
+            fps_list = []
             while True:
 
                 data = conn.recv(payload_size)
@@ -50,18 +53,13 @@ class Streamer(threading.Thread):
                     # Read frame size
                     msg_size = struct.unpack("Ld", data)[0]
 
-                    # Calculate Latency # Jiaxi
+                    # Read Sent Time # Jiaxi
                     sent_time = struct.unpack("Ld", data)[1]
-                    rece_time = time.time()
-                    print("Latency: " + str(rece_time - sent_time))
 
-                    # Calculate FPS # Jiaxi
-                    curr_received_second = int(rece_time)
-                    if curr_received_second != last_received_second:
-                        print("FPS: " + str(fps))
-                        last_received_second = curr_received_second
-                        fps = 0
-                    fps += 1
+                    # Calculat Packet Delay # Jiaxi
+                    packet_delay = time.time() - sent_time
+                    print("One-Way Packet Delay: " + str(packet_delay))
+                    packet_delay_list.append(packet_delay)
 
                     # Read the payload (the actual frame)
                     data = b''
@@ -73,7 +71,12 @@ class Streamer(threading.Thread):
                             # Connection interrupted
                             self.streaming = False
                             break
-
+                        
+                    # Calculat Frame Delay # Jiaxi
+                    frame_delay = time.time() - sent_time
+                    print("One-Way Frame Delay: " + str(frame_delay))
+                    frame_delay_list.append(frame_delay)
+                    
                     # Skip building frame since streaming ended
                     if self.jpeg is not None and not self.streaming:
                         continue
@@ -87,7 +90,17 @@ class Streamer(threading.Thread):
                     ret, jpeg = cv2.imencode('.jpg', frame)
                     self.jpeg = jpeg
 
+                    # Calculate FPS # Jiaxi
+                    curr_fps_second = int(time.time())
+                    if curr_fps_second != last_fps_second:
+                        print("FPS: " + str(fps))
+                        fps_list.append(fps)
+                        last_fps_second = curr_fps_second
+                        fps = 0
+                    fps += 1
+
                     self.streaming = True
+                    
                 else:
                     conn.close()
                     print('Closing connection...')
@@ -95,7 +108,10 @@ class Streamer(threading.Thread):
                     self.running = False
                     self.jpeg = None
                     break
-
+        
+        print("Average One-Way Packet Delay: " + str(numpy.average(numpy.array(packet_delay_list))))
+        print("Average One-Way Frame Delay: " + str(numpy.average(numpy.array(frame_delay_list))))
+        print("Average FPS: " + str(numpy.average(numpy.array(fps_list))))
         print('Exit thread.')
 
     def stop(self):
