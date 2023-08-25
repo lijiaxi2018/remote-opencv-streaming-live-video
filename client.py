@@ -6,13 +6,20 @@ import time # Jiaxi
 from io import BytesIO
 
 # Capture frame
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
+
+# Frame width Jiaxi
+FRAME_WIDTH = 1920
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client_socket.connect(('localhost', 8080))
 
 while cap.isOpened():
     _, frame = cap.read()
+
+    # Resize frame Jiaxi
+    aspect_ratio = frame.shape[0] / frame.shape[1]
+    frame = cv2.resize(frame, (FRAME_WIDTH, int(FRAME_WIDTH * aspect_ratio)))
 
     memfile = BytesIO()
     np.save(memfile, frame)
